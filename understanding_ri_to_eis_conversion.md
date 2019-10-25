@@ -45,8 +45,8 @@ export EIS_HOME=/home/eis/IEdgeInsights-lab-restricted-zone-notifier
 First, let's create the directory for the new user-defined classification function and create an empty ****init**.py** file to contain our implementation.
 
 ```bash
-mkdir $EIS_HOME/algos/dpm/classification/classifiers/restrictedzonenotifier
-touch $EIS_HOME/algos/dpm/classification/classifiers/restrictedzonenotifier/__init__.py
+mkdir $EIS_HOME/VideoAnalytics/classifiers/restrictedzonenotifier
+touch $EIS_HOME/VideoAnalytics/classifiers/restrictedzonenotifier.py
 ```
 
 ### Create the Application Configuration JSON file
