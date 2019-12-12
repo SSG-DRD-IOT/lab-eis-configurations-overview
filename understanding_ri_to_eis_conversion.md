@@ -180,7 +180,7 @@ Next copy and paste this text into the newly created file:
 
 ### Creating the Classifier algorithm 
 
-In EIS the classifier algorithm has 3 mehthods: 
+In EIS the classifier algorithm has 3 meathods: 
 
 
 `__init__` : The method used for initialization and loading the intermediate representation model into the plugin. 
@@ -244,59 +244,52 @@ def trace_calls(frame, event, arg):
                   caller_line_no, caller_filename))
     return
 ```
-### Create  method
+### Create Classifier class
+
+```python
+class Classifier(BaseClassifier):
+```
 
 To create the `__init__` method we will check that the model files exist, load the plugin for CPU, load the CPU extension libraries, and check that the layers of the model are supported.
 
-Paste is the following code into our **__init__.py** file:
+Paste is the following code into the Classifier class. Make sure to indent the code.
 
 ```python
-    def __init__(self, model_xml, model_bin, device):
-        """Constructor
-        Parameters
-        ----------
-        model_xml      : TF model xml file
-        model_bin      : TF model bin file
-        device         : Run time device [CPU/GPU/MYRIAD]
-            Classifier configuration
-        """
+    def __init__(self, classifier_config, input_queue, output_queue):
+        """Constructor of Classifier class
 
-        self.log = logging.getLogger('PEOPLE_DETECTION')
+        :param classifier_config: Configuration object for the classifier
+        :type classifier_config: dict
+        :param input_queue: input queue for classifier
+        :type input_queue: queue
+        :param output_queue: output queue of classifier
+        :type output_queue: queue
+        :return: Classification object
+        :rtype: Object
+        """
+        logging.info('Launching restrictedzonenotififier.py __init__ method')
+        super().__init__(classifier_config, input_queue, output_queue)
+        # self.log = logging.getLogger('PCB_DEFECT_DETECTION')
+        self.model_xml = classifier_config["model_xml"]
+        self.model_bin = classifier_config["model_bin"]
+        self.device = classifier_config["device"]
 
         # Assert all input parameters exist
-        assert os.path.exists(model_xml), \
-            'Tensorflow model missing: {}'.format(model_xml)
-        assert os.path.exists(model_bin), \
-            'Tensorflow model bin file missing: {}'.format(model_bin)
+        assert os.path.exists(self.model_xml), \
+            'Tensorflow model missing: {}'.format(self.model_xml)
+        assert os.path.exists(self.model_bin), \
+            'Tensorflow model bin file missing: {}'.format(self.model_bin)
 
         # Load OpenVINO model
-        #loading plugin for CPU
-        self.plugin = IEPlugin(device=device.upper(), plugin_dirs="")
-
-        if 'CPU' in device:
-            self.plugin.add_cpu_extension("/opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so")
-
-        self.net = IENetwork(model=model_xml, weights=model_bin)
-
-        if device.upper() == "CPU":
-            supported_layers = self.plugin.get_supported_layers(self.net)
-            not_supported_layers = [l for l in self.net.layers.keys() if l not
-                                    in supported_layers]
-            if len(not_supported_layers) != 0:
-                self.log.debug('ERROR: Following layers are not supported by \
-                                the plugin for specified device {}:\n \
-                                {}'.format(self.plugin.device,
-                                           ', '.join(not_supported_layers)))
-
-        assert len(self.net.inputs.keys()) == 1, \
-            'Sample supports only single input topologies'
-        assert len(self.net.outputs) == 1, \
-            'Sample supports only single output topologies'
-
+        self.plugin = IEPlugin(device=self.device.upper(), plugin_dirs="")
+        self.net = IENetwork.from_ir(model=self.model_xml,
+                                     weights=self.model_bin)
         self.input_blob = next(iter(self.net.inputs))
         self.output_blob = next(iter(self.net.outputs))
         self.net.batch_size = 1  # change to enable batch loading
         self.exec_net = self.plugin.load(network=self.net)
+        self.profiling = bool(strtobool(os.environ['PROFILING_MODE']))
+
    ```
 
 
@@ -304,81 +297,110 @@ Paste is the following code into our **__init__.py** file:
 
 To create the `classify` method we will use the section of the main function loop that runs the single shot detector on each frame as as well as the section of code that writes the alerts out to the screen as a basis.
 
-Paste is the following code into our **__init__.py** file:
+Paste is the following code into our Classifier class:
 
 ```python
- def classify(self, frame_num, img, user_data):
-        """Classify the given image.
-
-        Parameters
-        ----------
-        frame_num : int
-            Frame count since the start signal was received from the trigger
-        img : NumPy Array
-            Image to classify
-        user_data : Object
-            Extra data passed forward from the trigger
-
-        Returns
-        -------
-            Returns dissplay info and detected coordinates
+ def classify(self):
+        """Reads the image frame from input queue for classifier
+        and classifies against the specified reference image.
         """
-        self.log.info('Classify')
-        d_info = []
-        p_detect = []
-        frame_count=+1
+        logging.info('Launching restrictedzonenotififier.py classify method')
+        logging.info('stop_ev_is_set=%s', self.stop_ev.is_set())
+        frame_count = 0
+        while not self.stop_ev.is_set():
+            metadata, frame = self.input_queue.get()
+            logging.info('metadata=%s', metadata)
+            logging.info('frame type=%s', type(frame))
+            p_detect = []
+            frame_count = frame_count + 1
 
-        initial_wh = [img.shape[1], img.shape[0]]
-        n,c,h,w =  self.net.inputs[self.input_blob].shape
 
-        roi_x,roi_y, roi_w,roi_h = [0,0,0,0]
 
-        if roi_x <= 0 or roi_y <= 0:
-           roi_x = 0
-           roi_y = 0
-        if roi_w <= 0:
-            roi_w = img.shape[1]
-        if roi_h <= 0:
-             roi_h = img.shape[0]
+            # Convert the buffer into np array.
 
-        cv2.rectangle(img, (roi_x, roi_y),
-                      (roi_x + roi_w, roi_y + roi_h), (0, 0, 255), 2)
-        selected_region = [roi_x, roi_y, roi_w, roi_h]
+            np_buffer = np.frombuffer(frame, dtype=np.uint8)
+            if 'encoding_type' and 'encoding_level' in metadata:
+                reshape_frame = np.reshape(np_buffer, (np_buffer.shape))
+                reshape_frame = cv2.imdecode(reshape_frame, 1)
+            else:
+                reshape_frame = np.reshape(np_buffer, (int(metadata["height"]),
+                                                       int(metadata["width"]),
+                                                       int(metadata["channel"])
+                                                       ))
 
-        in_frame_fd = cv2.resize(img, (w, h))
-        # Change data layout from HWC to CHW
-        in_frame_fd = in_frame_fd.transpose((2, 0, 1))
-        in_frame_fd = in_frame_fd.reshape((n, c, h, w))
+            initial_wh = [reshape_frame.shape[1], reshape_frame.shape[0]]
+            n, c, h, w = self.net.inputs[self.input_blob].shape
+            roi_x, roi_y, roi_w, roi_h = [0, 0, 0, 0]
 
-        # Start asynchronous inference for specified request.
-        inf_start = time.time()
-        self.exec_net.start_async(request_id=0, inputs={self.input_blob:in_frame_fd})
-        self.infer_status=self.exec_net.requests[0].wait()
-        det_time = time.time() - inf_start
+            if roi_x <= 0 or roi_y <= 0:
+                roi_x = 0
+                roi_y = 0
+            if roi_w <= 0:
+                roi_w = reshape_frame.shape[1]
+            if roi_h <= 0:
+                roi_h = reshape_frame.shape[0]
+            cv2.rectangle(reshape_frame, (roi_x, roi_y),
+                          (roi_x + roi_w, roi_y + roi_h), (0, 0, 255), 2)
+            selected_region = [roi_x, roi_y, roi_w, roi_h]
+            in_frame_fd = cv2.resize(reshape_frame, (w, h))
+            # Change data layout from HWC to CHW
+            in_frame_fd = in_frame_fd.transpose((2, 0, 1))
+            in_frame_fd = in_frame_fd.reshape((n, c, h, w))
 
-        res = self.exec_net.requests[0].outputs[self.output_blob]
-        # Parse SSD output
-        safe,person=self.ssd_out(res, initial_wh, selected_region)
+            # Start asynchronous inference for specified request.
+            logging.info("starting inference")
+            inf_start = time.time()
 
-        if person:
-            x,y,x1,y1 = [person[0][i] for i in (0,1,2,3)]
-            p_detect.append(Defect(PERSON_DETECTED, (x, y), (x1, y1)))
+            res = self.exec_net.infer(inputs={self.input_blob: in_frame_fd})
 
-        # Draw performance stats
-        inf_time_message = "Inference time: {:.3f} ms".format(det_time * 1000)
-        throughput = "Throughput: {:.3f} fps".format(1000*frame_count/(det_time*1000))
+            det_time = time.time() - inf_start
+            res = res[self.output_blob]
 
-        d_info.append(DisplayInfo(inf_time_message, 0))
-        d_info.append(DisplayInfo(throughput, 0))
-        #if not safe display HIGH [priority: 2] alert string
-        if p_detect:
-            warning = "HUMAN IN ASSEMBLY AREA: PAUSE THE MACHINE!"
-            d_info.append(DisplayInfo('Worker Safe: False', 2))
-            d_info.append(DisplayInfo(warning, 2))
-        else:
-            d_info.append(DisplayInfo('Worker Safe: True', 0))
+            # Parse SSD output
+            logging.info("Process output #{}".format(frame_count))
+            safe, person = self.ssd_out(res, initial_wh, selected_region)
 
-        return d_info, p_detect
+            logging.info(safe)
+            logging.info(person)
+            if person:
+                x, y, x1, y1 = [person[0][i] for i in (0, 1, 2, 3)]
+                p_detect.append(Defect(PERSON_DETECTED, (x, y), (x1, y1)))
+
+            '''
+            if p_detect:
+                warning = "HUMAN IN ASSEMBLY AREA: PAUSE THE MACHINE!"
+                d_info.append(DisplayInfo('Worker Safe: False', 2))
+                d_info.append(DisplayInfo(warning, 2))
+            else:
+                d_info.append(DisplayInfo('Worker Safe: True', 0))
+
+            logging.info("d_info:")
+            logging.info(d_info)
+            '''
+            defects=[]
+            for d in p_detect:
+                if d.defect_class == PERSON_DETECTED:
+                    defects.append({
+                        'type': d.defect_class,
+                        'tl': d.tl,
+                        'br': d.br
+                    })
+                else:
+                    logging.info("None")
+
+            metadata["display_info"] = defects
+
+            if self.profiling is True:
+                metadata['ts_va_classify_exit'] = time.time() * 1000
+
+            logging.info('SENDING FRAME {} TO OUTPUT QUEUE'.format(frame_count))
+            #logging.info('metadata:%s ', metadata)
+            
+            logging.info('Frame sent to queue')
+            self.log.info("metadata: {} added to output queue".format(
+                metadata))
+                
+            self.output_queue.put((metadata, frame))
  ```
 
 ### Create ssd_out method
