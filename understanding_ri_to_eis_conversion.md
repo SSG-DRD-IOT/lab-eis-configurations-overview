@@ -53,6 +53,13 @@ touch $EIS_HOME/VideoAnalytics/classifiers/restrictedzonenotifier.py
 ```
 
 ### System wide configuration 
+
+When launching the reference implementation normally parameters such as the model to use, any library plugins, the hardware to run inference on, and the location of the input file are set on the command line:
+
+![](images/rzn_input_1.png)
+
+For EIS we will follow the steps below. 
+
 All of the runtime configurations for the docker containers in the EIS system are stored within etcd, a key value store that serves as a central repository for configuration.
 
 Etcd reads in a configuration file located at 
@@ -67,14 +74,8 @@ The containers that are configured here include:
 * FactoryControlApp
 * ImageStore
 
-### Create the Application Configuration JSON file
+ This file will contain a JSON object that defines the video sources, preprocessing trigger location and the classifier function location.
 
-In the **$EIS_HOME/docker_setup/provision/config/etd_pre_load.json** file named **restricted_zone_notifier.json**. This file will contain a JSON object that defines the video sources, preprocessing trigger location and the classifier function location.
-
-
-When launching the reference implementation normally parameters such as the model to use, any library plugins, the hardware to run inference on, and the location of the input file are set on the command line:
-
-![](images/rzn_input_1.png)
 
 We will set these configuration parameters in the restricted_zone_notifier.json application configuration file in the **video_file**, **model_xml**, **model_bin**, and **device** fields. 
 
@@ -87,52 +88,94 @@ For the classification module we will point to the currently empty **restrictedz
 
 Create the .json file:
 
+### json not correct
+
 ```bash
-gedit $EIS_HOME/docker_setup/config/algo_config/restricted_zone_notifier.json
+gedit $EIS_HOME/docker_setup/provision/config/etd_pre_load.json
 ```
 
 Next copy and paste this text into the newly created file:
 
 ```JSON
 {
-    "machine_id": "tool_2",
-    "trigger_threads": 1,
-    "queue_size" : 10,
-    "data_ingestion_manager": {
-        "ingestors": {
-            "video_file": {
-                "video_file": "./test_videos/worker-zone-detection.mp4",
-                "encoding": {
-                    "type": "jpg",
-                    "level": 100
-                },
-                "img_store_type": "inmemory_persistent",
-                "loop_video": true,
-                "poll_interval": 0.2
-            }
+    "/VideoIngestion/config": {
+        "ingestor": {
+            "video_src": "./test_videos/workers_walking.mp4",
+            "encoding": {
+                "type": "jpg",
+                "level": 100
+            },
+            "loop_video": "true",
+            "poll_interval": 0.2
+        },
+        "filter": {
+            "name": "bypass_trigger",
         }
+
     },
-    "triggers": {
-        "bypass_trigger": {
-            "training_mode": false
-        }
-    },
-    "classification": {
+    "/VideoAnalytics/config": {
+        "name": "pcb_classifier",
+        "queue_size": 10,
         "max_workers": 1,
-        "classifiers": {
-            "restrictedzonenotifier": {
-                "trigger": [
-                    "bypass_trigger"
-                ],
-                "config": {
-                    "model_xml": "./algos/algo_config/restricted_zone_notifier/person-detection-retail-0013.xml",
-                    "model_bin": "./algos/algo_config/restricted_zone_notifier/person-detection-retail-0013.bin",
-                    "device": "CPU"
-                }
-            }
+        "ref_img": "./VideoAnalytics/classifiers/ref_pcbdemo/ref.png",
+        "ref_config_roi": "./VideoAnalytics/classifiers/ref_pcbdemo/roi_2.json",
+        "model_xml": "./VideoAnalytics/classifiers/ref_pcbdemo/model_2.xml",
+        "model_bin": "./VideoAnalytics/classifiers/ref_pcbdemo/model_2.bin",
+        "device": "CPU"
+    },
+    "/Visualizer/config": {
+        "display": "true",
+        "save_image": "false",
+        "cert_path": ""
+    },
+    "/InfluxDBConnector/config": {
+        "influxdb": {
+            "retention": "1h30m5s",
+            "username": "admin",
+            "password": "admin123",
+            "dbname": "datain",
+            "ssl": "True",
+            "verifySsl": "False",
+            "port": "8086"
+        },
+        "pub_workers" : "5",
+        "sub_workers" : "5"
+    },
+    "/Kapacitor/config": {
+        "influxdb": {
+            "username": "admin",
+            "password": "admin123"
         }
+    },
+    "/FactoryControlApp/config": {
+        "io_module_ip": "localhost",
+        "io_module_port": 502,
+        "red_bit_register": 20,
+        "green_bit_register": 19
+    },
+    "/ImageStore/config": {
+        "minio":{
+           "accessKey":"admin",
+           "secretKey":"password",
+           "retentionTime":"1h",
+           "retentionPollInterval":"60s",
+           "ssl":"false"
+        }
+    },
+    "/GlobalEnv/": {
+        "COMPOSE_HTTP_TIMEOUT":"200",
+        "COMPOSE_PROJECT_NAME":"EIS_docker_network",
+        "EIS_USER_NAME":"eisuser",
+        "EIS_UID":"5319",
+        "EIS_INSTALL_PATH":"/opt/intel/eis",
+        "PY_LOG_LEVEL":"INFO",
+        "GO_LOG_LEVEL":"INFO",
+        "GO_VERBOSE":"0",
+        "HOST_TIME_ZONE":"",
+        "ETCD_KEEPER_PORT":"7070"
     }
 }
+
 ```
 
 ### Creating the Classifier algorithm 
@@ -146,38 +189,62 @@ In EIS the classifier algorithm has 3 mehthods:
  
 `ssd_out`: The method used fpr parsing the classification output. 
 
-We will use the main python script from the [reference implementation](https://github.com/intel-iot-devkit/restricted-zone-notifier-python/blob/master/application/restricted_zone_notifier.py) as a basis in creating these three methods and add them to out **__init__.py** file.
+We will use the main python script from the [reference implementation](https://github.com/intel-iot-devkit/restricted-zone-notifier-python/blob/master/application/restricted_zone_notifier.py) as a basis in creating these three methods and add them to our **restrictedzone.py** file.
 
 ### Import modules and create Classifier class
 
 First we will import all python modules that will be used in the classifier algorithm and create the main **Classifier** class which will contain our methods:
 
-First open our **__init__.py** file:
+First open our **restrictedzone.py** file:
 
 ```bash
-gedit $EIS_HOME/algos/dpm/classification/classifiers/restrictedzonenotifier/__init__.py
+gedit $EIS_HOME/algos/dpm/classification/classifiers/restrictedzone.py
 ```
 
 and copy the following code at the top:
 
 ```python
 import os
-import sys
 import logging
 import cv2
-import time
 import numpy as np
 import json
-from collections import namedtuple
-from algos.dpm.defect import Defect
-from algos.dpm.display_info import DisplayInfo
+import threading
+
+from .defect import Defect
+from libs.base_classifier import BaseClassifier
 from openvino.inference_engine import IENetwork, IEPlugin
+from distutils.util import strtobool
+import time
+
+import sys
+
+from collections import namedtuple
+
 MyStruct = namedtuple("assemblyinfo", "safe")
 INFO = MyStruct(True)
 PERSON_DETECTED = 1
-class Classifier:
+
+
+def trace_calls(frame, event, arg):
+    if event != 'call':
+        return
+    co = frame.f_code
+    func_name = co.co_name
+    if func_name == 'write':
+        # Ignore write() calls from print statements
+        return
+    func_line_no = frame.f_lineno
+    func_filename = co.co_filename
+    caller = frame.f_back
+    caller_line_no = caller.f_lineno
+    caller_filename = caller.f_code.co_filename
+    logging.info('Call to %s on line %s of %s from line %s of %s' % \
+                 (func_name, func_line_no, func_filename,
+                  caller_line_no, caller_filename))
+    return
 ```
-### Create __init__ method
+### Create  method
 
 To create the `__init__` method we will check that the model files exist, load the plugin for CPU, load the CPU extension libraries, and check that the layers of the model are supported.
 
