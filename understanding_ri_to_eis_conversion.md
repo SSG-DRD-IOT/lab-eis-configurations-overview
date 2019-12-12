@@ -300,7 +300,7 @@ To create the `classify` method we will use the section of the main function loo
 Paste is the following code into our Classifier class:
 
 ```python
- def classify(self):
+    def classify(self):
         """Reads the image frame from input queue for classifier
         and classifies against the specified reference image.
         """
@@ -313,7 +313,6 @@ Paste is the following code into our Classifier class:
             logging.info('frame type=%s', type(frame))
             p_detect = []
             frame_count = frame_count + 1
-
 
 
             # Convert the buffer into np array.
@@ -355,6 +354,7 @@ Paste is the following code into our Classifier class:
 
             det_time = time.time() - inf_start
             res = res[self.output_blob]
+            # res = self.exec_net.requests[0].outputs[self.output_blob]
 
             # Parse SSD output
             logging.info("Process output #{}".format(frame_count))
@@ -365,6 +365,7 @@ Paste is the following code into our Classifier class:
             if person:
                 x, y, x1, y1 = [person[0][i] for i in (0, 1, 2, 3)]
                 p_detect.append(Defect(PERSON_DETECTED, (x, y), (x1, y1)))
+
 
             '''
             if p_detect:
@@ -394,23 +395,22 @@ Paste is the following code into our Classifier class:
                 metadata['ts_va_classify_exit'] = time.time() * 1000
 
             logging.info('SENDING FRAME {} TO OUTPUT QUEUE'.format(frame_count))
-            #logging.info('metadata:%s ', metadata)
-            
+
+            self.output_queue.put((metadata, frame))
             logging.info('Frame sent to queue')
             self.log.info("metadata: {} added to output queue".format(
                 metadata))
-                
-            self.output_queue.put((metadata, frame))
+
  ```
 
 ### Create ssd_out method
 
 The `ssd_out` method is used to parse the classifier output. We will use the `ssd_out` method in the reference python script as the basis.
 
-Paste is the following code into our **__init__.py** file:
+Paste is the following code into our Classifier class:
 
 ```python
-    def ssd_out(self,res, initial_wh, selected_region):
+    def ssd_out(self, res, initial_wh, selected_region):
         """
         Parse SSD output.
 
@@ -418,8 +418,12 @@ Paste is the following code into our **__init__.py** file:
         :param args: Parsed arguments
         :param initial_wh: Initial width and height of the frame
         :param selected_region: Selected region coordinates
-        :return: safe,person  
+        :return: safe,person
         """
+        logging.info("called ssd_out with res, initial_wh, selected_region:")
+        #logging.info(res)
+        #logging.info(initial_wh)
+        #logging.info(selected_region)
         global INFO
         person = []
         INFO = INFO._replace(safe=True)
@@ -454,7 +458,7 @@ Paste is the following code into our **__init__.py** file:
                 else:
                     # assembly line area flags
                     INFO = INFO._replace(safe=False)
-        return INFO.safe,person
+        return INFO.safe, person
    ```
 
 
