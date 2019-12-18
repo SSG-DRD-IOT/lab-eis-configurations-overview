@@ -8,6 +8,10 @@ In this lab, we will walk through the key files that the application developer w
 
 ## Configuration Overview
 
+### The EtcD Key-Value Service Holds a Deployments Configuration
+
+
+
 ### The Build Configuration File
 
 **$EIS_HOME/docker_setup/.env** contains all of the environmental variables for the micro-service build process. This includes Shell variables and Docker environmental variables.
