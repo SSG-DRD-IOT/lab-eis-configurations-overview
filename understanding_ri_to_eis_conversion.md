@@ -18,12 +18,10 @@ First let's look at the reference implementation of the Restricted Zone Notifier
 ## Steps to Port Application to EIS
 First, let's review how the system is initialized and the steps that are needed in order to create a new application for EIS. 
 
-1. 
-Create the new classifier Python file and a directory to hold related files such as the OpenVINO models and label files
-Modify the runtime configuration file that are loaded into etcd at provisioning time.
-2. What is a directory called restricted Zone Notifier in the classifier directory
-3. Create a Python file for the user defined classifier algorithm
-4. Deploy application
+ 1. Create the new classifier Python file and a directory to hold related files such as the OpenVINO models and label files Modify the runtime configuration file that are loaded into etcd at provisioning time.
+ 2. What is a directory called restricted Zone Notifier in the classifier directory
+ 3. Create a Python file for the user defined classifier algorithm
+ 4. Deploy application
 
 ###
 
