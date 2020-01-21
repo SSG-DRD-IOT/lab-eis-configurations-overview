@@ -4,7 +4,7 @@ Industrial Edge Insights Software (EIS) from Intel is a reference implementation
 
 Edge Insights Software (EIS) implements the data ingestion, storage, alerting and monitoring and all the infrustructure software to support analytics applications. This leaves you, as the developer or systems integrator to focus on creating the application and not the infrastructure.  
 
-In this lab, we will walk through the key files that the application developer will need to modify.
+In this lab, we will walk through the key files that the application developer will need to configure the build process and the microservices runtime.
 
 ## Configuration Overview
 
@@ -12,7 +12,7 @@ In this lab, we will walk through the key files that the application developer w
 
 To learn more about etcd visit its homepage on Github at https://github.com/etcd-io/etcd
 
-### The Build Configuration File
+## Build Configurations
 
 **$EIS_HOME/docker_setup/.env** contains all of the environmental variables for the micro-service build process. This includes Shell variables and Docker environmental variables.
 
@@ -46,8 +46,86 @@ Here are some of the important lines in the build configuration file
  58 SSL_KEY_LENGTH=3072
 ```
 
+## Runtime Configurations
 
-### Application Configuration File
+When the microservices start EtcD will come online. EtcD stores all of runtime configurations of the EIS system in a distributed and fault tolerant manner.
+
+### The etcd_pre_load.json File
+The **$EIS_HOME/docker_setup/provision/config/etcd_pre_load.json** file contains all of the default values that the system uses to initialize itself.
+
+Each stage of the Video Analytics Pipeline has a configuration section.
+
+
+### Video Ingestion
+
+Video Ingestion is a service that defines the video sources. The sources can either be from a file stream or from a camera and more than 1 video ingestor can be defined.
+
+Here is an example of configuring a video file source.
+```json
+  2     "/VideoIngestion/config": {
+  3         "ingestor": {
+  4             "video_src": "./test_videos/pcb_d2000.avi",
+  5             "encoding": {
+  6                 "type": "jpg",
+  7                 "level": 100
+  8             },
+  9             "loop_video": "true",
+ 10             "poll_interval": 0.2
+ 11         },
+ 12         "filter": {
+ 13             "name": "pcb_filter",
+ 14             "queue_size": 10,
+ 15             "max_workers": 1,
+ 16             "training_mode": "false",
+ 17             "n_total_px": 300000,
+ 18             "n_left_px": 1000,
+ 19             "n_right_px": 1000
+ 20         }
+ 21 
+ 22     },
+```
+
+Here is an example of two cameras. The first camera uses RTSP and the second camera uses serial communications
+```json
+2     "/VideoIngestion1/config": {
+  3         "ingestor": {
+  4         "video_src": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! appsink max_buffers=2 drop=TRUE",
+  5         "encoding": {
+  6             "type": "jpg",
+  7             "level": 100
+  8         },
+  9         "poll_interval": 0.2
+ 10     },
+ 11     "filter": {
+ 12         "name": "bypass_filter",
+ 13         "queue_size": 10,
+ 14         "max_workers": 1,
+ 15         "training_mode": "false"
+ 16     }
+ 17 
+ 18     },
+ 19     "/VideoIngestion2/config": {
+ 20         "ingestor": {
+ 21             "video_src": "pylonsrc serial=22573662 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink",
+ 22             "encoding": {
+ 23                 "type": "jpg",
+ 24                 "level": 100
+ 25             },
+ 26             "poll_interval": 0.2
+ 27         },
+ 28         "filter": {
+ 29             "name": "bypass_filter",
+ 30             "queue_size": 10,
+ 31             "max_workers": 1,
+ 32             "training_mode": "false",
+ 33             "n_total_px": 300000,
+ 34             "n_left_px": 1000,
+ 35             "n_right_px": 1000
+ 36         }
+ 37 
+ 38     },
+```
+
 
 This JSON file is the main configuration file for the entire data pipeline. Using this file, a user can define the data ingestion, storage, triggers, and classifiers to be used in the application.
 
