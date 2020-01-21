@@ -58,7 +58,10 @@ Each stage of the Video Analytics Pipeline has a configuration section.
 
 ### Video Ingestion
 
-Video Ingestion is a service that defines the video sources. The sources can either be from a file stream or from a camera and more than 1 video ingestor can be defined.
+Video Ingestion is a service that defines the video sources. The sources can either be from a file stream or from a camera and more than 1 video ingestor can be defined. 
+
+### Filters
+The video ingestor also supports a filter than will be call on each frame. The filter can be used to set up filter criteria that allows the video analytics developer remove video frames from the pipeline before they are sent to the OpenVINO neural network step in the pipeline. This allows the video analytics developer to setup up a quick executing algorithm to elimentate frames before they are sent to the more computationally intensive computer visions steps of the pipeline.
 
 Here is an example of configuring a video file source.
 ```json
@@ -85,7 +88,7 @@ Here is an example of configuring a video file source.
  22     },
 ```
 
-Here is an example of two cameras. The first camera uses RTSP and the second camera uses serial communications
+Here is an example of two cameras. The first camera uses RTSP and the second camera uses serial communications. both have a bypass filter defined.
 ```json
 2     "/VideoIngestion1/config": {
   3         "ingestor": {
@@ -126,47 +129,8 @@ Here is an example of two cameras. The first camera uses RTSP and the second cam
  38     },
 ```
 
+Notice that the filters are defined along with any arguments that need to be passed to the filter.
 
-This JSON file is the main configuration file for the entire data pipeline. Using this file, a user can define the data ingestion, storage, triggers, and classifiers to be used in the application.
-
-This file is located in **$EIS_HOME/Workshop/IEdgeInsights-v1.5LTS/docker_setup/config/algo_config/factory_pcbdemo.json**
-
-Take a look at the file now and notice some key elements: 
-
-### Video Ingestion
-
-```json
-"data_ingestion_manager": {
-        "ingestors": {
-            "video_file": {
-                "video_file": "./test_videos/pcb_d2000.avi",
-                "encoding": {
-                    "type": "jpg",
-                    "level": 100
-                },
-                "img_store_type": "inmemory_persistent",
-                "loop_video": true,
-                "poll_interval": 0.2
-            }
-        }
-    }
-```
-
-Here we see the video file set as "./test_videos/pcb_d2000.avi" this path is relative to **$EIS_HOME/docker_setup/**
-
-### Trigger Setup
-
-```json
-    "triggers": {
-        "pcb_trigger": {
-            "training_mode": false,
-            "n_total_px": 300000,
-            "n_left_px": 1000,
-            "n_right_px": 1000
-        }
-```
-
-Here we see the trigger set as **pcb_trigger** - this specifices that we will use **$EIS_HOME/algos/dpm/triggers/pcb_trigger.py** as the trigger script for our application. The script that calls the trigger is **$EIS_HOME/VideoIngestion/VideoIngestion.py**
 
 
 Classifier Setup:
