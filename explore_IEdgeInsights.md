@@ -10,6 +10,7 @@ In this lab, we will walk through the key files that the application developer w
 
 ### The EtcD Key-Value Service Holds a Deployments Configuration
 
+To learn more about etcd visit its homepage on Github at https://github.com/etcd-io/etcd
 
 
 ### The Build Configuration File
