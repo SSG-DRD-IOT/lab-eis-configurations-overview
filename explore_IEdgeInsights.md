@@ -63,6 +63,10 @@ Video Ingestion is a service that defines the video sources. The sources can eit
 ### Filters
 The video ingestor also supports a filter than will be call on each frame. The filter can be used to set up filter criteria that allows the video analytics developer remove video frames from the pipeline before they are sent to the OpenVINO neural network step in the pipeline. This allows the video analytics developer to setup up a quick executing algorithm to elimentate frames before they are sent to the more computationally intensive computer visions steps of the pipeline.
 
+This filters the incoming data stream, mainly to reduce the storage and computation requirements by only passing frames of interest. All input frames are passed to the Filter. 
+
+![](images/VideoIngestion.png)
+
 Here is an example of configuring a video file source.
 ```json
   2     "/VideoIngestion/config": {
@@ -132,85 +136,54 @@ Here is an example of two cameras. The first camera uses RTSP and the second cam
 Notice that the filters are defined along with any arguments that need to be passed to the filter.
 
 
+### Video Classification Setup
+The **$EIS_HOME/docker_setup/provision/config/etcd_pre_load.json** file also sets up the classification step of the pipeline. 
+**pcb_classifier** is a python file defined by the video analytics developer. It will use OpenVINO to run the neural network defined by **model_xml** and **model_bin**
 
-Classifier Setup:
-```json
- "classification": {
-        "max_workers": 1,
-        "classifiers": {
-            "pcbdemo": {
-                "trigger": [
-                    "pcb_trigger"
-                ],
-                "config": {
-                    "ref_img": "./algos/algo_config/ref_pcbdemo/ref.png",
-                    "ref_config_roi": "./algos/algo_config/ref_pcbdemo/roi_2.json",
-                    "model_xml": "./algos/algo_config/ref_pcbdemo/model_2.xml",
-                    "model_bin": "./algos/algo_config/ref_pcbdemo/model_2.bin",
-                    "device": "CPU"
-                }
-            }
-        }
-    }
-```
+ 23     "/VideoAnalytics/config": {
+ 24         "name": "pcb_classifier",
+ 25         "queue_size": 10,
+ 26         "max_workers": 1,
+ 27         "ref_img": "./VideoAnalytics/classifiers/ref_pcbdemo/ref.png",
+ 28         "ref_config_roi": "./VideoAnalytics/classifiers/ref_pcbdemo/roi_2.json",
+ 29         "model_xml": "./VideoAnalytics/classifiers/ref_pcbdemo/model_2.xml",
+ 30         "model_bin": "./VideoAnalytics/classifiers/ref_pcbdemo/model_2.bin",
+ 31         "device": "CPU"
+ 32     },
 
-This block defines the classification module where we specify the classifer name **pcbdemo** - This will be used by **$EIS_HOME/algos/dpm/classification/classifier_manager.py** to set the connection between the Trigger module and Classification module by using the **$EIS_HOME//algos/dpm/classification/classifiers/pcbdemo** folder as the location of the classification scripts.
 
 :warning: This folder must be in this location and have the same name as the classifier to function. 
 
 The **config** section defines all of the arguments that are passed to the classifier. This particular classifier will use OpenVINO :wine_glass:. OpenVINO requires a **neural network model file** in itermediate representation format and the **device hardware** that the inference will be run on.
 
 
-This block also sets the **ref_img** reference image and **ref_config_roi** region of interest configuration files. These files are used in the Mobilenet defect detection algorithm. 
+### Frame/Image Storage and Alerts and Notifications
 
-### Video Ingestion
-The Video Ingestion module uses the Data Ingestion library to setup multiple video feeds and pass the frames to the data preprocessing micro-service. 
+InfluxDB is used to store the meta data that the Classifier generates. This information is the result of the OpenVINO classication.
 
-![](images/VideoIngestion.png)
+Kapacitor is the alerting system that can be configured to run scripts or send notifications when an Image is classified.
 
-
-The Video Ingestion micro-service can setup multiple video streams. These streams may be gstreamer RTSP streams, video cameras, or video files.
-
-For example the **$EIS_HOME/docker_setup/config/algo_config/factory_multi_cam.json** configuration file outlines how to load multiple RTSP camera streams:
-
+```json
+ 38     "/InfluxDBConnector/config": {
+ 39         "influxdb": {
+ 40             "retention": "1h30m5s",
+ 41             "username": "admin",
+ 42             "password": "admin123",
+ 43             "dbname": "datain",
+ 44             "ssl": "True",
+ 45             "verifySsl": "False",
+ 46             "port": "8086"
+ 47         },
+ 48         "pub_workers" : "5",
+ 49         "sub_workers" : "5"
+ 50     },
+ 51     "/Kapacitor/config": {
+ 52         "influxdb": {
+ 53             "username": "admin",
+ 54             "password": "admin123"
+ 55         }
+ 56     },
 ```
- "data_ingestion_manager": {
-        "ingestors": {
-            "video": {
-                "vi_queue_size":5,
-                "streams": {
-                    "capture_streams": {
-                        "cam_serial1": {
-                            "video_src": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! mfxdecode ! videoconvert ! appsink",
-                            "encoding": {
-                                "type": "jpg",
-                                "level": 100
-                            },
-                            "img_store_type": "inmemory_persistent",
-                            "poll_interval": 0.2
-                        },
-                        "cam_serial2": {
-                            "video_src": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! mfxdecode ! videoconvert ! appsink",
-                            "encoding": {
-                                "type": "jpg",
-                                "level": 100
-                            },
-                            "img_store_type": "inmemory_persistent",
-                            "poll_interval": 0.2
-                        },
-```
-
-*Location:*$EIS_HOME/VideoIngestion/
-
-### Trigger
-This filters the incoming data stream, mainly to reduce the storage and computation requirements by only passing frames of interest. All input frames are passed to the Trigger.  When it detects a frame of interest based on user defined functions, it activates a signal which causes that frame to be saved in the Image Store database, and the metadata for that frame in the InfluxDB database.
-
-*Location:*~/Workshop/IEdgeInsights-v1.5LTS/algos/dpm/triggers/
-
-##### Classifier
-The is a user defined algorithm that is run on each frame of interest. Kapacitor, an open source data processing engine, subscribes to the meta-data stream , and the classifier receives the meta-data from Kapacitor. The classifier pulls the frame from the Image Store, and saves the analysis results as metadata back into the InfluxDB database.
-
-*Location:*~/Workshop/IEdgeInsights-v1.5LTS/algos/dpm/classification/classifiers/
 
 ##### Visualizer
       The visualizer is not a video viewer! It is pulling frames that have a classification result from the object store and displaying them rapidly one after another.
@@ -280,19 +253,24 @@ The raw image frame is returned in response to the GetBlob() command.
 **NOTE:** As an application developer, you do not need to worry about handling the data flow described above from data ingestion to classification. The included software stack using InfluxDB and Kapacitor handle the data movement and storage.
 
 
-
 ### Running Defect detection demo application                            
 **Description**   
 Printed Circuits Boards(PCBs) are being inspected for quality control to check if any defects(missing component or components are short) are there with the PCBs. To find out the defects a good quality PCB will be compared against the defective ones and pin point the location of the defect as well.
 
-Input to the application can be from a live stream or from a video file. Here video file (~/Workshop/IEdgeInsights-v1.5LTS/docker_setup/test_videos/pcb_d2000.avi) is used for this demo.
+Input to the application can be from a live stream or from a video file. Here video file (~/$EIS_HOME/docker_setup/test_videos/pcb_d2000.avi) is used for this demo.
 
 **Build and Run Sample.**  
 To **build and run** the sample pcbdemo sample application execute the following commands.
 
 ```bash
-cd ~/Workshop/IEdgeInsights-v1.5LTS/docker_setup/
-sudo make build run
+cd ~/$EIS_HOME/docker_setup/
+
+cd provision
+./provision_eis.sh ../docker-compose.yml
+
+cd ..
+sudo su
+docker-compose up --build -d
 ```
 
 Once this completes run the following command to view the log:
@@ -310,7 +288,7 @@ Which is indicating that the ia_data_agent container is streaming data on the "s
 To **Visualize** the sample application , execute the below command:
 
 ```bash
-cd ~/Workshop/IEdgeInsights-v1.5LTS/tools/visualizer
+cd ~/$EIS_HOME/tools/visualizer
 source ./source.sh
 python3 visualize.py -D true
 ```
