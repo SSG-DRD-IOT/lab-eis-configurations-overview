@@ -37,7 +37,7 @@ First, let us have a look on the below code flow for the restricted zone notifie
 
 For our convenience, let's set an environmental variable called **EIS_HOME** to refer to the root level directory of the Edge Insights Software.
 
-**During the workshop be sure to check this location or ask your instructor. **
+**During the workshop be sure to check this location on YOUR COMPUTER or ask your instructor which directory EIS is installed in. **
 
 ```bash
 export EIS_HOME=/home/eis/IEdgeInsights-lab-restricted-zone-notifier
@@ -63,7 +63,7 @@ For EIS we will follow the steps below.
 All of the runtime configurations for the docker containers in the EIS system are stored within etcd, a key value store that serves as a central repository for configuration.
 
 Etcd reads in a configuration file located at 
-**docker_setup/provision/config/etd_pre_load.json**
+**$EIS_HOME/docker_setup/provision/config/etd_pre_load.json**
  
 The containers that are configured here include:
 * VideoInvestion
@@ -74,17 +74,15 @@ The containers that are configured here include:
 * FactoryControlApp
 * ImageStore
 
- This file will contain a JSON object that defines the video sources, preprocessing trigger location and the classifier function location.
-
+This file will contain a JSON object that defines the video sources, preprocessing trigger location and the classifier function location.
 
 We will set these configuration parameters in the restricted_zone_notifier.json application configuration file in the **video_file**, **model_xml**, **model_bin**, and **device** fields. 
 
-We will also set the trigger alogorithm and the classification alogrithm to be used in the solution in this configuration file. 
+We will also set the filter alogorithm and the classification alogrithm to be used in the solution in this configuration file. 
 
 The reference implementation does not have any data pre-processing so we will use the **bypass_trigger** which sends all incoming frames to the classification engine. 
 
 For the classification module we will point to the currently empty **restrictedzonenotifier** folder that we created earlier. 
-
 
 Create the .json file:
 
