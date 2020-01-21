@@ -12,48 +12,38 @@ In this lab, we will walk through the key files that the application developer w
 
 To learn more about etcd visit its homepage on Github at https://github.com/etcd-io/etcd
 
-
 ### The Build Configuration File
 
 **$EIS_HOME/docker_setup/.env** contains all of the environmental variables for the micro-service build process. This includes Shell variables and Docker environmental variables.
 
-Lines 30-41 Contain several important configuration parameters, include:
+Here are some of the important lines in the build configuration file
+```sh
+ 13 # Docker security
+ 14 EIS_USER_NAME=eisuser
+ 15 EIS_UID=5319
 
-* **IEI_SERVICES** - the configuration file that defines the micro-services to be built. This file is located in the **$EIS_HOME/docker_setup/config/** directory.
-* **CONFIG_FILE** - the configuration file that defines the data input, pre-processing, and classification. This file is located in the **$EIS_HOME/docker_setup/config/algo_config** directory. 
-* **IEI_INSTALL_PATH** - Defines where IEI is installed. 
-* **DEV_MODE** - Sets developer mode which disables SSL certificate authentication between micro-services. 
+ 17 # This is the path where EIS package is installed
+ 18 EIS_INSTALL_PATH=/opt/intel/eis
 
-```
- 30 # IEI_SERVICES allows to selectively build and run the required IEI containers per point data/video usecase
- 31 IEI_SERVICES=services_all.json
- 32 
- 33 # CONFIG_FILE has all the required information for video usecase like source of video stream, triggger and
- 34 # classification algos configuration
- 35 CONFIG_FILE=factory_pcbdemo.json
- 36 
- 37 # This is the path where IEI package is installed
- 38 IEI_INSTALL_PATH=/opt/intel/iei
- 39 
- 40 # DEV_MODE if set `true` allows one to run IEI in non-secure mode and provides additional UX/DX etc.,
- 41 DEV_MODE=true
-```
+ 25 # DEV_MODE if set `true` allows one to run EIS in non-secure mode and provides additional UX/DX etc.,
+ 26 DEV_MODE=false
+ 27 # PROFILING_MODE is set 'true' allows to generate profile/performance data
+ 28 PROFILING_MODE=false
 
-The ports that each micro-service uses are defined in lines:
-
-```
- 46 # Configurable ports
- 47 GRPC_EXTERNAL_PORT=50051
- 48 GRPC_INTERNAL_PORT=50052
- 49 OPCUA_PORT=4840
- 50 INFLUXDB_PORT=8086
- 51 IMAGESTORE_PORT=50055
- 52 KAPACITOR_PORT=9092
- 53 VAULT_PORT=8200
- 54 
- 55 # Non-configurable ports
- 56 REDIS_PORT=6379
- 57 MINIO_PORT=9000
+ 45 # Etcd settings
+ 46 ETCD_NAME=master
+ 47 ETCD_VERSION=v3.4.0
+ 48 ETCD_DATA_DIR=/EIS/etcd/data/
+ 49 ETCD_RESET=true
+ 50 ETCD_CLIENT_PORT=2379
+ 51 ETCD_PEER_PORT=2380
+ 52 # For proxy environment, please append IP addresses or Range IP addresses of each node of the cluster to no_proxy
+ 53 # e.q. no_proxy=localhost,127.0.0.1,10.223.109.130,10.223.109.170
+ 54 no_proxy=localhost,127.0.0.1
+ 55 
+ 56 # TLS ciphers for ETCD, INFLUXDB
+ 57 TLS_CIPHERS=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+ 58 SSL_KEY_LENGTH=3072
 ```
 
 
