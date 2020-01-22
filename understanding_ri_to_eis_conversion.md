@@ -56,8 +56,6 @@ touch $EIS_HOME/VideoAnalytics/classifiers/restrictedzonenotifier.py
 
 When launching the reference implementation normally parameters such as the model to use, any library plugins, the hardware to run inference on, and the location of the input file are set on the command line:
 
-![](images/rzn_input_1.png)
-
 For EIS we will follow the steps below. 
 
 All of the runtime configurations for the docker containers in the EIS system are stored within etcd, a key value store that serves as a central repository for configuration.
@@ -461,8 +459,6 @@ Paste is the following code into our Classifier class:
 
 
 ### Messaging Thread
-
-The Python based reference implementation messaging thread publishes MQTT messages to Server to display the output.
 
 In the EIS framework, the messages are published over OPC-UA by the Data Agent Service. We will use an OPC-UA client to view those messages. This OPC/UA client is located in **$EIS_HOME/tools/visualizer** and does not need to be customized for this application.
 
