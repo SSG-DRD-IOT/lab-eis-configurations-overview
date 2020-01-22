@@ -8,6 +8,8 @@ The Intel Developer Zones has many reference implementation applications, sample
 
 On the [Industrial Reference Implementations and Code Samples](https://software.intel.com/en-us/industrial) page, you can browser difference ready-made applications. We will be porting the [Restricted Zone Notifier](https://software.intel.com/en-us/iot/reference-implementations/restricted-zone-notifier) to the Edge Insights Software framework.
 
+![](https://software.intel.com/sites/default/files/managed/7e/c8/RefImpl-RestrictedZoneNotifier.jpg)
+
 The source code for the Restricted Zone Notifier can be found on Github.
 https://github.com/intel-iot-devkit/restricted-zone-notifier-python.
 
