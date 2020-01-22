@@ -147,7 +147,7 @@ The **$EIS_HOME/docker_setup/provision/config/etcd_pre_load.json** file also set
         "max_workers": 1,
         "model_xml": "./VideoAnalytics/classifiers/restrictedzonenotifier/person-detection-retail-0013.xml",
         "model_bin": "./VideoAnalytics/classifiers/restrictedzonenotifier/person-detection-retail-0013.bin",
-        "labels": "./VideoAnalytics/classifiers/sample_classification_classifier/googlenet_labels.txt",
+        "labels": "./VideoAnalytics/classifiers/restrictedzonenotifier/googlenet_labels.txt",
         "device": "GPU"
 
     },
