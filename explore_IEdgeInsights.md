@@ -295,9 +295,6 @@ python3 visualize.py -D true
 This will run the vizualizer in developer mode (no certificates needed). 
 
 **Pcb-Demo Output**   
-Once the application successfully runs. The output window will be poped up as below.
-![](images/pcbdemo_result.png)
-
 
 You should now understand the Intel® Edge Insights Software framework components and how run pcbdemo application successfully.    
 Let's Deploy a Restricted Zone Notifier Reference implementation using Intel® Edge Insights Software framework in our next lab.
