@@ -140,16 +140,17 @@ Notice that the filters are defined along with any arguments that need to be pas
 The **$EIS_HOME/docker_setup/provision/config/etcd_pre_load.json** file also sets up the classification step of the pipeline. 
 **pcb_classifier** is a python file defined by the video analytics developer. It will use OpenVINO to run the neural network defined by **model_xml** and **model_bin**
 
-      "/VideoAnalytics/config": {
-          "name": "pcb_classifier",
-          "queue_size": 10,
-          "max_workers": 1,
-          "ref_img": "./VideoAnalytics/classifiers/ref_pcbdemo/ref.png",
-          "ref_config_roi": "./VideoAnalytics/classifiers/ref_pcbdemo/roi_2.json",
-          "model_xml": "./VideoAnalytics/classifiers/ref_pcbdemo/model_2.xml",
-          "model_bin": "./VideoAnalytics/classifiers/ref_pcbdemo/model_2.bin",
-          "device": "CPU"
-      },
+
+    "/VideoAnalytics/config": {
+        "name": "restrictedzonenotifier",
+        "queue_size": 10,
+        "max_workers": 1,
+        "model_xml": "./VideoAnalytics/classifiers/restrictedzonenotifier/person-detection-retail-0013.xml",
+        "model_bin": "./VideoAnalytics/classifiers/restrictedzonenotifier/person-detection-retail-0013.bin",
+        "labels": "./VideoAnalytics/classifiers/sample_classification_classifier/googlenet_labels.txt",
+        "device": "GPU"
+
+    },
 
 
 :warning: This folder must be in this location and have the same name as the classifier to function. 
