@@ -69,68 +69,62 @@ This filters the incoming data stream, mainly to reduce the storage and computat
 
 Here is an example of configuring a video file source.
 ```json
-      "/VideoIngestion/config": {
-          "ingestor": {
-              "video_src": "./test_videos/pcb_d2000.avi",
-              "encoding": {
-                  "type": "jpg",
-                  "level": 100
-              },
-              "loop_video": "true",
-              "poll_interval": 0.2
-          },
-          "filter": {
-              "name": "pcb_filter",
-              "queue_size": 10,
-              "max_workers": 1,
-              "training_mode": "false",
-              "n_total_px": 300000,
-              "n_left_px": 1000,
-              "n_right_px": 1000
-          }
-  
-      },
+    "/VideoIngestion/config": {
+        "encoding": {
+            "type": "jpeg",
+            "level": 95
+        },
+        "ingestor": {
+            "type": "opencv",
+            "pipeline": "./test_videos/Safety_Full_Hat_and_Vest.mp4",
+            "loop_video": "true",
+            "queue_size": 10,
+            "poll_interval": 0.2
+        },
+        "max_jobs": 20,
+        "max_workers": 4,
+        "udfs": [
+            {
+                "name": "dummy",
+                "type": "native"
+            }
+        ]
+    },
 ```
 
 Here is an example of two cameras. The first camera uses RTSP and the second camera uses serial communications. both have a bypass filter defined.
 ```json
     "/VideoIngestion1/config": {
-          "ingestor": {
-          "video_src": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! appsink max_buffers=2 drop=TRUE",
-          "encoding": {
-              "type": "jpg",
-              "level": 100
-          },
-          "poll_interval": 0.2
-      },
-      "filter": {
-          "name": "bypass_filter",
-          "queue_size": 10,
-          "max_workers": 1,
-          "training_mode": "false"
-      }
-  
-      },
-      "/VideoIngestion2/config": {
-          "ingestor": {
-              "video_src": "pylonsrc serial=22573662 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink",
-              "encoding": {
-                  "type": "jpg",
-                  "level": 100
-              },
-              "poll_interval": 0.2
-          },
-          "filter": {
-              "name": "bypass_filter",
-              "queue_size": 10,
-              "max_workers": 1,
-              "training_mode": "false",
-              "n_total_px": 300000,
-              "n_left_px": 1000,
-              "n_right_px": 1000
-          }
-  
-      },
+        "encoding": {
+            "type": "jpeg",
+            "level": 95
+        },
+        "ingestor": {
+            "type": "opencv",
+            "pipeline": "./test_videos/pcb_d2000.avi",
+            "loop_video": "true",
+            "queue_size": 10,
+            "poll_interval": 0.2
+        },
+        "max_jobs": 20,
+        "max_workers": 4,
+        "udfs": [
+            {
+                "name": "dummy",
+                "type": "native"
+            }
+        ]
+    },
+    "/VideoIngestion2/config": {
+        "encoding": {
+            "type": "jpeg",
+            "level": 95
+        },
+        "ingestor": {
+            "type": "opencv",
+            "pipeline": "pylonsrc serial=22573662 imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 ! videoconvert ! appsink"
+        }
+    },
 ```
 
 Notice that the filters are defined along with any arguments that need to be passed to the filter.
@@ -142,14 +136,22 @@ The **$EIS_HOME/docker_setup/provision/config/etcd_pre_load.json** file also set
 
 
     "/VideoAnalytics/config": {
-        "name": "restrictedzonenotifier",
+        "encoding": {
+            "type": "jpeg",
+            "level": 95
+        },
         "queue_size": 10,
-        "max_workers": 1,
-        "model_xml": "./VideoAnalytics/classifiers/restrictedzonenotifier/person-detection-retail-0013.xml",
-        "model_bin": "./VideoAnalytics/classifiers/restrictedzonenotifier/person-detection-retail-0013.bin",
-        "labels": "./VideoAnalytics/classifiers/restrictedzonenotifier/googlenet_labels.txt",
-        "device": "GPU"
-
+        "max_jobs": 20,
+        "max_workers": 4,
+        "udfs": [
+            {
+                "name": "safety_gear.safety_classifier",
+                "type": "python",
+                "device": "CPU",
+                "model_xml": "common/udfs/python/safety_gear/ref/frozen_inference_graph.xml",
+                "model_bin": "common/udfs/python/safety_gear/ref/frozen_inference_graph.bin"
+            }
+        ]
     },
 
 
