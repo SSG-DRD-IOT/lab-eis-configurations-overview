@@ -471,3 +471,55 @@ Paste is the following code into our Classifier class:
 In the EIS framework, the messages are published over EIS Data Bus and can be subscribed to via OPC-UA by the OPC-UA Service. We will use an OPC-UA client to view those messages. This OPC/UA client is located in **$EIS_HOME/tools/visualizer** and does not need to be customized for this application.
 
 You should now have a better idea of how an existing code base can be converted to Classifier and Trigger based Intel® Edge Insights (EIS) Software. In the next, lab we will implement all of these modules and run the restricted zone notifier using EIS.
+
+
+# Provision EIS
+
+<b>`By default EIS is provisioned in Secure mode`</b>.
+
+Follow the below steps to provision ( *initialize the runtime with default values* ) EIS. Provisioning must be done before deploying EIS on any node. It will start ETCD as a container and load it with configuration required to run EIS for single node or multi node cluster set up.
+
+Following actions will be performed as part of Provisioning
+
+ * Loading inital ETCD values from json file located at **docker_setup/provision/config/etcd_pre_load.json**.
+ * For Secure mode, Generating ZMQ secret/public keys for each app and putting them in ETCD.
+ * Generating required X509 certs and putting them in etcd.
+ * All server certificates will be generated with 127.0.0.1, localhost and HOST_IP mentioned in **docker_setup/.env**.
+ * If HOST_IP is blank in **docker_setup/.env**, then HOST_IP will be automatically detected when server certificates are generated.
+
+**Optional:** In case of cleaning existing volumes, please run the **volume_data_script.py**. The script can be run by the command:
+```
+python3.6 volume_data_script.py
+```
+
+Below script starts `etcd` as a container and provision EIS. Please pass docker-compose file as argument, against which provisioning will be done.
+```bash
+
+sudo ./provision_eis.sh ../docker-compose.yml
+
+```
+
+
+# Build and Run EIS PCB Demo Example
+
+All EIS build and run commands should be executed from the **$EIS_HOME/docker_setup** directory.
+
+**If `ia_visualizer` service is enabled in the docker-compose.yml file. Then be sure that X Windows allows connections from the visualizer. The easiest way to 
+
+```sh
+
+xhost +
+
+``` 
+
+To build and run EIS in one command:
+```sh
+docker-compose up --build -d
+```
+
+
+**Please note that the first time build of EIS containers take ~70 minutes.
+
+A successful run will open Visualizer UI with results of video analytics.
+
+>**Note**: In case multiple VideoIngestion or VideoAnalytics services are needed to be launched, then the **docker-compose.yml** file can be modified with the required configurations and below command can be used to build and run the containers.
