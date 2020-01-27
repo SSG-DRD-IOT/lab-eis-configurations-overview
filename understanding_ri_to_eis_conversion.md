@@ -266,8 +266,6 @@ To define a Python function which uses OpenVINO to perform analytics on the fram
 `process` : The method used for inferencing and capturing the inference output.
 
 
-We will use the main python script from the [reference implementation](https://github.com/intel-iot-devkit/restricted-zone-notifier-python/blob/master/application/restricted_zone_notifier.py) as a basis in creating these three methods and add them to our **restrictedzone.py** file.
-
 ### Import modules and create Classifier class
 
 First we will import all python modules that will be used in the classifier algorithm and create the main **Classifier** class which will contain our methods:
@@ -349,6 +347,17 @@ def __init__(self, model_xml, model_bin, device):
 ### Create Process method 
 
 To create the `process` method we will use the section of the main function loop that runs the single shot detector on each frame as as well as the section of code that writes the alerts out to the screen as a basis.
+
+This process method has 4 results that say which safety gear the worker is using a if they are safe or violating safety rules.
+
+```JSON
+{
+	"1": "safety_helmet",
+	"2": "safety_jacket",
+	"3": "Safe",
+	"4": "Violation"
+}
+```
 
 Paste is the following code into our Classifier class:
 
@@ -462,7 +471,3 @@ Paste is the following code into our Classifier class:
 In the EIS framework, the messages are published over EIS Data Bus and can be subscribed to via OPC-UA by the OPC-UA Service. We will use an OPC-UA client to view those messages. This OPC/UA client is located in **$EIS_HOME/tools/visualizer** and does not need to be customized for this application.
 
 You should now have a better idea of how an existing code base can be converted to Classifier and Trigger based Intel® Edge Insights (EIS) Software. In the next, lab we will implement all of these modules and run the restricted zone notifier using EIS.
-
-## Next Lab
-
-[Deploying Restricted Zone Notifier using Edge Insights Software framework](./lab_restricted_zone_notifier.md)
