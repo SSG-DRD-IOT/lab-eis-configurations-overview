@@ -1,4 +1,4 @@
-# Explore Intel® Edge Insights Software
+# Build and Runtime Configuration Overview
 ## What is Intel® Edge Insights Software
 Industrial Edge Insights Software (EIS) from Intel is a reference implementation of an analytics pipeline. The pipeline is designed as a set of micro-services that the customer can deploy in different configurations.
 
